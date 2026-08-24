@@ -1,0 +1,22 @@
+window.HOMEDECO_FURNITURE={
+ shoeCabinet:{name:'靴箱',room:'entrance',x:0,y:0,w:3,h:2,sections:['上段','中段','下段']},
+ umbrellaStand:{name:'傘立て',room:'entrance',x:6,y:0,w:2,h:2,sections:['収納']},
+ washShelf:{name:'洗面棚',room:'washBath',x:0,y:0,w:3,h:3,sections:['上段','中段','下段']},
+ laundryRack:{name:'洗濯ラック',room:'washBath',x:5,y:0,w:3,h:3,sections:['上段','下段']},
+ fridge:{name:'冷蔵庫',room:'livingKitchen',x:0,y:0,w:2,h:4,sections:['冷蔵室','野菜室','冷凍室']},
+ pantry:{name:'食品棚',room:'livingKitchen',x:2,y:0,w:2,h:3,sections:['上段','中段','下段']},
+ livingShelf:{name:'リビング棚',room:'livingKitchen',x:6,y:0,w:4,h:2,sections:['上段','中段','下段']},
+ table:{name:'テーブル',room:'livingKitchen',x:3,y:5,w:4,h:3,sections:['上']},
+ oshiire:{name:'押し入れ',room:'washitsu',x:0,y:0,w:4,h:3,sections:['上段','下段']},
+ lowTable:{name:'座卓',room:'washitsu',x:2,y:4,w:4,h:2,sections:['天板']},
+ toiletShelf1:{name:'トイレ棚',room:'toilet1',x:0,y:0,w:5,h:2,sections:['棚']},
+ closet201:{name:'クローゼット',room:'room201',x:0,y:0,w:3,h:3,sections:['上段','ハンガー','下段']},
+ desk201:{name:'机',room:'room201',x:4,y:4,w:3,h:2,sections:['引き出し1','引き出し2']},
+ closet202:{name:'クローゼット',room:'room202',x:0,y:0,w:3,h:3,sections:['上段','ハンガー','下段']},
+ shelf202:{name:'棚',room:'room202',x:5,y:0,w:3,h:3,sections:['上段','中段','下段']},
+ closet203:{name:'クローゼット',room:'room203',x:0,y:0,w:3,h:3,sections:['上段','ハンガー','下段']},
+ shelf203:{name:'棚',room:'room203',x:5,y:0,w:3,h:3,sections:['上段','中段','下段']},
+ storageRack:{name:'物置ラック',room:'storage',x:0,y:0,w:3,h:5,sections:['1段目','2段目','3段目','4段目']},
+ storageBox:{name:'収納箱',room:'storage',x:4,y:4,w:3,h:2,sections:['収納']},
+ toiletShelf2:{name:'トイレ棚',room:'toilet2',x:0,y:0,w:5,h:2,sections:['棚']}
+};
