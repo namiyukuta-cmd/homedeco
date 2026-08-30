@@ -127,7 +127,7 @@ function render(){
   f.sections.forEach(secName=>{
     const rows=Object.entries(s.items).filter(([,i])=>i.furniture===fid&&i.section===secName);
     const sec=document.createElement('section');
-    sec.className='storage-section '+sectionTone(secName);
+    sec.className='storage-section '+sectionTone(secName)+(fid==='fridge'?' fridge-section':'');
 
     const header=document.createElement('div');
     header.className='storage-section-head';
@@ -140,18 +140,109 @@ function render(){
     header.append(h,count);
     sec.appendChild(header);
 
-    const list=document.createElement('div');
-    list.className='item-list';
-    if(!rows.length){
-      const e=document.createElement('div');
-      e.className='empty compact-empty';
-      e.textContent='空';
-      list.appendChild(e);
+    if(fid==='fridge'){
+      const list=document.createElement('div');
+      list.className='fridge-list';
+      if(rows.length){
+        const tableHead=document.createElement('div');
+        tableHead.className='fridge-table-head';
+        tableHead.innerHTML='<span>商品名</span><span>残数量</span><span>期限</span>';
+        list.appendChild(tableHead);
+        rows.forEach(([iid,item])=>list.appendChild(fridgeRow(iid,item)));
+      }else{
+        const e=document.createElement('div');
+        e.className='fridge-empty';
+        e.textContent='空';
+        list.appendChild(e);
+      }
+      sec.appendChild(list);
+    }else{
+      const list=document.createElement('div');
+      list.className='item-list';
+      if(!rows.length){
+        const e=document.createElement('div');
+        e.className='empty compact-empty';
+        e.textContent='空';
+        list.appendChild(e);
+      }
+      rows.forEach(([iid,item])=>list.appendChild(itemCard(iid,item)));
+      sec.appendChild(list);
     }
-    rows.forEach(([iid,item])=>list.appendChild(itemCard(iid,item)));
-    sec.appendChild(list);
     root.appendChild(sec);
   });
+}
+
+function shortDate(value){
+  if(!value)return '—';
+  const m=String(value).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m?m[1].slice(2)+'/'+m[2]+'/'+m[3]:String(value);
+}
+
+function fridgeRow(iid,item){
+  const wrap=document.createElement('div');
+  wrap.className='fridge-row-wrap';
+
+  const row=document.createElement('button');
+  row.type='button';
+  row.className='fridge-row';
+  const qty=String(item.quantity??'')+(item.unit?' '+item.unit:'');
+  row.innerHTML='<span class="fridge-name">'+esc(item.name)+'</span><span class="fridge-qty">'+esc(qty||'—')+'</span><span class="fridge-exp">'+esc(shortDate(item.expiration))+'</span>';
+
+  const actions=document.createElement('div');
+  actions.className='fridge-edit-actions';
+  actions.hidden=true;
+  actions.append(
+    actionButton('数量',()=>changeQuantity(iid,item)),
+    actionButton('場所',()=>changeSection(iid,item)),
+    actionButton('期限',()=>changeExpiration(iid,item)),
+    actionButton('削除',()=>removeItem(iid,item),'danger')
+  );
+
+  row.onclick=()=>{actions.hidden=!actions.hidden;row.classList.toggle('open',!actions.hidden);};
+  wrap.append(row,actions);
+  return wrap;
+}
+
+function actionButton(label,handler,extraClass=''){
+  const b=document.createElement('button');
+  b.type='button';
+  b.className='btn fridge-edit-btn'+(extraClass?' '+extraClass:'');
+  b.textContent=label;
+  b.onclick=handler;
+  return b;
+}
+
+function changeQuantity(iid,item){
+  const n=prompt('数量',item.quantity);
+  if(n===null)return;
+  const v=Number(n);
+  if(!Number.isFinite(v)||v<0)return alert('0以上の数字を入力してください。');
+  HomeDecoSave.updateItem(iid,{quantity:v});
+  render();
+}
+
+function changeSection(iid,item){
+  const current=f.sections.indexOf(item.section);
+  const options=f.sections.map((x,i)=>(i+1)+': '+x).join('\n');
+  const n=prompt('移動先の番号を入力してください。\n'+options,current+1);
+  if(n===null)return;
+  const index=Number(n)-1;
+  if(!Number.isInteger(index)||!f.sections[index])return alert('番号を選んでください。');
+  HomeDecoSave.updateItem(iid,{section:f.sections[index]});
+  render();
+}
+
+function changeExpiration(iid,item){
+  const v=prompt('期限（例：2026-08-31）',item.expiration||'');
+  if(v===null)return;
+  HomeDecoSave.updateItem(iid,{expiration:v});
+  render();
+}
+
+function removeItem(iid,item){
+  if(!confirm(item.name+'を一覧から削除しますか？'))return;
+  HomeDecoSave.removeItem(iid);
+  render();
 }
 
 function itemCard(iid,item){
@@ -165,53 +256,12 @@ function itemCard(iid,item){
 
   const a=document.createElement('div');
   a.className='item-actions storage-actions';
-
-  const q=document.createElement('button');
-  q.className='btn';
-  q.textContent='数量変更';
-  q.onclick=()=>{
-    const n=prompt('数量',item.quantity);
-    if(n===null)return;
-    const v=Number(n);
-    if(!Number.isFinite(v)||v<0)return alert('0以上の数字を入力してください。');
-    HomeDecoSave.updateItem(iid,{quantity:v});
-    render();
-  };
-
-  const move=document.createElement('button');
-  move.className='btn';
-  move.textContent='場所変更';
-  move.onclick=()=>{
-    const current=f.sections.indexOf(item.section);
-    const options=f.sections.map((x,i)=>(i+1)+': '+x).join('\n');
-    const n=prompt('移動先の番号を入力してください。\n'+options,current+1);
-    if(n===null)return;
-    const index=Number(n)-1;
-    if(!Number.isInteger(index)||!f.sections[index])return alert('番号を選んでください。');
-    HomeDecoSave.updateItem(iid,{section:f.sections[index]});
-    render();
-  };
-
-  const ex=document.createElement('button');
-  ex.className='btn';
-  ex.textContent='期限変更';
-  ex.onclick=()=>{
-    const v=prompt('期限（例：2026-08-31）',item.expiration||'');
-    if(v===null)return;
-    HomeDecoSave.updateItem(iid,{expiration:v});
-    render();
-  };
-
-  const del=document.createElement('button');
-  del.className='btn danger';
-  del.textContent='削除';
-  del.onclick=()=>{
-    if(!confirm(item.name+'を一覧から削除しますか？'))return;
-    HomeDecoSave.removeItem(iid);
-    render();
-  };
-
-  a.append(q,move,ex,del);
+  a.append(
+    actionButton('数量変更',()=>changeQuantity(iid,item)),
+    actionButton('場所変更',()=>changeSection(iid,item)),
+    actionButton('期限変更',()=>changeExpiration(iid,item)),
+    actionButton('削除',()=>removeItem(iid,item),'danger')
+  );
   d.appendChild(a);
   return d;
 }
