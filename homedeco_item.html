@@ -15,7 +15,7 @@
   </div>
 
   <section class="panel add-item-panel">
-    <button class="btn primary" id="toggleAddBtn" type="button">＋ 中身を追加</button>
+    <button class="btn primary add-toggle" id="toggleAddBtn" type="button">＋ 中身を追加</button>
     <form id="addForm" class="item-form" hidden>
       <div class="field">
         <label for="itemName">名前</label>
@@ -50,7 +50,7 @@
     </form>
   </section>
 
-  <section class="panel" id="contents"></section>
+  <section class="storage-contents" id="contents"></section>
 </main>
 
 <script src="js/homedeco_furniture.js"></script>
@@ -82,9 +82,15 @@ if(!f){
 
 toggleAddBtn.onclick=()=>{
   addForm.hidden=!addForm.hidden;
+  toggleAddBtn.textContent=addForm.hidden?'＋ 中身を追加':'− 入力を閉じる';
   if(!addForm.hidden){document.getElementById('itemName').focus();}
 };
-cancelAddBtn.onclick=()=>{addForm.hidden=true;addForm.reset();document.getElementById('itemQuantity').value=1;};
+cancelAddBtn.onclick=()=>{
+  addForm.hidden=true;
+  addForm.reset();
+  document.getElementById('itemQuantity').value=1;
+  toggleAddBtn.textContent='＋ 中身を追加';
+};
 
 addForm.addEventListener('submit',e=>{
   e.preventDefault();
@@ -103,26 +109,42 @@ addForm.addEventListener('submit',e=>{
   addForm.reset();
   document.getElementById('itemQuantity').value=1;
   addForm.hidden=true;
+  toggleAddBtn.textContent='＋ 中身を追加';
   render();
 });
+
+function sectionTone(secName){
+  if(secName.includes('冷蔵'))return 'storage-cold';
+  if(secName.includes('野菜'))return 'storage-veg';
+  if(secName.includes('冷凍'))return 'storage-freeze';
+  return 'storage-normal';
+}
 
 function render(){
   if(!f)return;
   const s=HomeDecoSave.ensure(),root=document.getElementById('contents');
   root.innerHTML='';
   f.sections.forEach(secName=>{
+    const rows=Object.entries(s.items).filter(([,i])=>i.furniture===fid&&i.section===secName);
     const sec=document.createElement('section');
-    sec.className='section';
+    sec.className='storage-section '+sectionTone(secName);
+
+    const header=document.createElement('div');
+    header.className='storage-section-head';
     const h=document.createElement('h2');
     h.className='section-title';
     h.textContent=secName;
-    sec.appendChild(h);
+    const count=document.createElement('span');
+    count.className='section-count';
+    count.textContent=rows.length+'件';
+    header.append(h,count);
+    sec.appendChild(header);
+
     const list=document.createElement('div');
     list.className='item-list';
-    const rows=Object.entries(s.items).filter(([,i])=>i.furniture===fid&&i.section===secName);
     if(!rows.length){
       const e=document.createElement('div');
-      e.className='empty';
+      e.className='empty compact-empty';
       e.textContent='空';
       list.appendChild(e);
     }
@@ -134,15 +156,15 @@ function render(){
 
 function itemCard(iid,item){
   const d=document.createElement('article');
-  d.className='item';
+  d.className='item storage-item';
   const rule=HOMEDECO_GOMI_RULES[item.garbage];
   const expiration=item.expiration||'未登録';
-  const memo=item.memo?'<span>メモ：'+esc(item.memo)+'</span>':'';
-  const trashInfo=rule?'<span>捨て方：'+esc(rule.label)+'</span><span class="muted">'+esc(rule.note||'')+'</span>':'';
-  d.innerHTML='<div class="item-head"><span class="item-name">'+esc(item.name)+'</span><span class="badge">'+esc(item.quantity)+' '+esc(item.unit||'')+'</span></div><div class="item-meta"><span>期限：'+esc(expiration)+'</span>'+memo+trashInfo+'</div>';
+  const memo=item.memo?'<div class="item-detail"><span class="detail-label">メモ</span><span>'+esc(item.memo)+'</span></div>':'';
+  const trashInfo=rule?'<div class="item-detail"><span class="detail-label">捨て方</span><span>'+esc(rule.label)+'</span></div>':'';
+  d.innerHTML='<div class="item-head"><span class="item-name">'+esc(item.name)+'</span><span class="badge quantity-badge">'+esc(item.quantity)+' '+esc(item.unit||'')+'</span></div><div class="item-meta"><div class="item-detail"><span class="detail-label">期限</span><span>'+esc(expiration)+'</span></div>'+memo+trashInfo+'</div>';
 
   const a=document.createElement('div');
-  a.className='item-actions';
+  a.className='item-actions storage-actions';
 
   const q=document.createElement('button');
   q.className='btn';
