@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>雑貨</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=20260831-5">
 </head>
 <body>
 <main class="app">
@@ -17,8 +17,12 @@
   <section class="panel add-item-panel">
     <button class="btn primary add-toggle" id="toggleAddBtn" type="button">＋ 雑貨を追加</button>
     <form id="addForm" class="item-form" hidden>
+      <div class="field quick-pick-field">
+        <label>よく買うもの</label>
+        <div id="favoriteItems" class="quick-pick-grid"></div>
+      </div>
       <div class="field">
-        <label for="itemName">名前</label>
+        <label for="itemName">なければ入力</label>
         <input id="itemName" autocomplete="off" placeholder="例：洗剤、ティッシュ" required>
       </div>
       <div class="field">
@@ -54,14 +58,16 @@
   </section>
 </main>
 
-<script src="js/homedeco_rooms.js"></script>
-<script src="js/homedeco_furniture.js"></script>
-<script src="js/homedeco_items.js"></script>
-<script src="js/homedeco_save.js"></script>
+<script src="js/homedeco_rooms.js?v=20260831-5"></script>
+<script src="js/homedeco_furniture.js?v=20260831-5"></script>
+<script src="js/homedeco_items.js?v=20260831-5"></script>
+<script src="js/homedeco_save.js?v=20260831-5"></script>
 <script>
 const addForm=document.getElementById('addForm');
 const toggleAddBtn=document.getElementById('toggleAddBtn');
 const placeSelect=document.getElementById('itemPlace');
+const itemName=document.getElementById('itemName');
+const favoriteItems=document.getElementById('favoriteItems');
 
 function allPlaces(){
   const places=[];
@@ -85,21 +91,37 @@ places.forEach((p,index)=>{
   placeSelect.appendChild(o);
 });
 
+function renderFavorites(){
+  favoriteItems.innerHTML='';
+  HomeDecoSave.getFavorites('misc').forEach(name=>{
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='quick-pick-btn';
+    b.textContent=name;
+    b.onclick=()=>{
+      itemName.value=name;
+      favoriteItems.querySelectorAll('.quick-pick-btn').forEach(x=>x.classList.toggle('selected',x===b));
+    };
+    favoriteItems.appendChild(b);
+  });
+}
+renderFavorites();
+
 toggleAddBtn.onclick=()=>{
   addForm.hidden=!addForm.hidden;
   toggleAddBtn.textContent=addForm.hidden?'＋ 雑貨を追加':'− 入力を閉じる';
-  if(!addForm.hidden)document.getElementById('itemName').focus();
 };
 document.getElementById('cancelAddBtn').onclick=()=>{
   addForm.hidden=true;
   addForm.reset();
   document.getElementById('itemQuantity').value=1;
   toggleAddBtn.textContent='＋ 雑貨を追加';
+  favoriteItems.querySelectorAll('.quick-pick-btn').forEach(x=>x.classList.remove('selected'));
 };
 
 addForm.addEventListener('submit',e=>{
   e.preventDefault();
-  const name=document.getElementById('itemName').value.trim();
+  const name=itemName.value.trim();
   const place=places[Number(placeSelect.value)];
   if(!name||!place)return;
   HomeDecoSave.addItem({
@@ -110,10 +132,12 @@ addForm.addEventListener('submit',e=>{
     unit:document.getElementById('itemUnit').value,
     memo:document.getElementById('itemMemo').value
   });
+  HomeDecoSave.addFavorite('misc',name);
   addForm.reset();
   document.getElementById('itemQuantity').value=1;
   addForm.hidden=true;
   toggleAddBtn.textContent='＋ 雑貨を追加';
+  renderFavorites();
   render();
 });
 
