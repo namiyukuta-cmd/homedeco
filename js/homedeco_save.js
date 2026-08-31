@@ -2,12 +2,37 @@
  const KEY='homedeco_save_v1';
  const TOKEN_KEY='homedeco_github_token_v1';
  const CLOUD={owner:'namiyukuta-cmd',repo:'private-game-data',path:'homedeco/save.json'};
+ const DEFAULT_FAVORITES={
+   fridge:['牛乳','卵','納豆','豆腐','ヨーグルト','バナナ','食パン','鶏もも肉','豚肉'],
+   misc:['トイレットペーパー','ティッシュ','洗濯洗剤','食器用洗剤','ゴミ袋','歯磨き粉']
+ };
 
  function clone(v){return JSON.parse(JSON.stringify(v));}
- function initial(){return {version:1,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),items:clone(window.HOMEDECO_INITIAL_ITEMS||{}),trash:{}};}
+ function initial(){return {version:1,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),items:clone(window.HOMEDECO_INITIAL_ITEMS||{}),trash:{},favorites:clone(DEFAULT_FAVORITES)};}
  function load(){try{const raw=localStorage.getItem(KEY);return raw?JSON.parse(raw):null;}catch(e){return null;}}
  function save(state){state.updatedAt=new Date().toISOString();localStorage.setItem(KEY,JSON.stringify(state));return state;}
- function ensure(){let s=load();if(!s){s=initial();save(s);}if(!s.items)s.items={};if(!s.trash)s.trash={};return s;}
+ function mergeFavorites(saved,defaults){
+   const out=[];
+   [...defaults,...(Array.isArray(saved)?saved:[])].forEach(name=>{
+     const n=String(name||'').trim();
+     if(n&&!out.some(x=>x.toLocaleLowerCase('ja')===n.toLocaleLowerCase('ja')))out.push(n);
+   });
+   return out;
+ }
+ function ensure(){
+   let s=load();
+   if(!s){s=initial();save(s);return s;}
+   let changed=false;
+   if(!s.items){s.items={};changed=true;}
+   if(!s.trash){s.trash={};changed=true;}
+   if(!s.favorites||typeof s.favorites!=='object'){s.favorites={};changed=true;}
+   Object.keys(DEFAULT_FAVORITES).forEach(category=>{
+     const merged=mergeFavorites(s.favorites[category],DEFAULT_FAVORITES[category]);
+     if(JSON.stringify(merged)!==JSON.stringify(s.favorites[category])){s.favorites[category]=merged;changed=true;}
+   });
+   if(changed)save(s);
+   return s;
+ }
  function reset(){const s=initial();save(s);return s;}
  function hasSave(){return !!load();}
  function makeItemId(){return 'item_'+Date.now()+'_'+Math.random().toString(36).slice(2,8);}
@@ -16,8 +41,19 @@
  function removeItem(id){const s=ensure();if(!s.items[id])return false;delete s.items[id];save(s);return true;}
  function discardItem(id){const s=ensure(),item=s.items[id];if(!item)return false;const rule=(window.HOMEDECO_GOMI_RULES||{})[item.garbage];const category=rule?rule.category:'unclassified';if(!s.trash[category])s.trash[category]=[];s.trash[category].push({id:'trash_'+Date.now(),name:item.name,quantity:item.quantity,unit:item.unit,sourceItemId:id,discardedAt:new Date().toISOString(),rule:item.garbage});delete s.items[id];save(s);return true;}
  function emptyBag(category){const s=ensure();s.trash[category]=[];save(s);}
+ function getFavorites(category){const s=ensure();return Array.isArray(s.favorites[category])?[...s.favorites[category]]:[];}
+ function addFavorite(category,name){
+   const s=ensure();
+   const n=String(name||'').trim();
+   if(!n)return false;
+   if(!Array.isArray(s.favorites[category]))s.favorites[category]=[];
+   if(s.favorites[category].some(x=>String(x).toLocaleLowerCase('ja')===n.toLocaleLowerCase('ja')))return false;
+   s.favorites[category].push(n);
+   save(s);
+   return true;
+ }
  function exportSave(){const s=ensure();const blob=new Blob([JSON.stringify(s,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='homedeco_save.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
- function importSave(file,done){const r=new FileReader();r.onload=()=>{try{const s=JSON.parse(r.result);save(s);done&&done(true);}catch(e){done&&done(false);}};r.readAsText(file);}
+ function importSave(file,done){const r=new FileReader();r.onload=()=>{try{const s=JSON.parse(r.result);save(s);ensure();done&&done(true);}catch(e){done&&done(false);}};r.readAsText(file);}
 
  function cleanToken(token){return String(token||'').replace(/\s+/g,'');}
  function getToken(){return cleanToken(localStorage.getItem(TOKEN_KEY)||'');}
@@ -67,11 +103,12 @@
    if(!token)throw new Error('GitHubトークンが設定されていません。');
    const file=await fetchCloudFile(token);
    let state;
-   try{state=JSON.parse(decodeBase64Utf8(file.content));}catch(e){throw new Error('GitHubのsave.jsonは今「h」だけなので、まだHome Decoのセーブではありません。最初は「GitHubへ保存」を押してください。');}
+   try{state=JSON.parse(decodeBase64Utf8(file.content));}catch(e){throw new Error('GitHubのsave.jsonはまだHome Decoのセーブ形式ではありません。最初は「GitHubへ保存」を押してください。');}
    if(!state||typeof state!=='object'||Array.isArray(state))throw new Error('GitHubのsave.jsonを読み込めません。');
    save(state);
-   return state;
+   ensure();
+   return load();
  }
 
- window.HomeDecoSave={KEY,TOKEN_KEY,CLOUD,initial,load,save,ensure,reset,hasSave,addItem,updateItem,removeItem,discardItem,emptyBag,exportSave,importSave,getToken,setToken,clearToken,checkToken,saveToGitHub,loadFromGitHub};
+ window.HomeDecoSave={KEY,TOKEN_KEY,CLOUD,DEFAULT_FAVORITES,initial,load,save,ensure,reset,hasSave,addItem,updateItem,removeItem,discardItem,emptyBag,getFavorites,addFavorite,exportSave,importSave,getToken,setToken,clearToken,checkToken,saveToGitHub,loadFromGitHub};
 })();
