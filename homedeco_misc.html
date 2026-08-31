@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>雑貨</title>
-<link rel="stylesheet" href="style.css?v=20260831-5">
+<link rel="stylesheet" href="style.css?v=20260831-6">
 </head>
 <body>
 <main class="app">
   <div class="topbar">
-    <button class="btn" onclick="location.href='homedeco_menu.html'">←</button>
+    <button class="btn" onclick="location.href='homedeco_menu.html?v=20260831-6'">←</button>
     <h1>雑貨</h1>
     <button class="btn" onclick="location.href='homedeco_gomi.html'">ゴミ</button>
   </div>
@@ -36,8 +36,12 @@
         </div>
         <div class="field">
           <label for="itemUnit">単位</label>
-          <input id="itemUnit" autocomplete="off" placeholder="個・本・袋など">
+          <input id="itemUnit" autocomplete="off" placeholder="なければ入力">
         </div>
+      </div>
+      <div class="field quick-pick-field">
+        <label>よく使う単位</label>
+        <div id="unitPicks" class="quick-pick-grid"></div>
       </div>
       <div class="field">
         <label for="itemMemo">メモ（任意）</label>
@@ -58,16 +62,19 @@
   </section>
 </main>
 
-<script src="js/homedeco_rooms.js?v=20260831-5"></script>
-<script src="js/homedeco_furniture.js?v=20260831-5"></script>
-<script src="js/homedeco_items.js?v=20260831-5"></script>
-<script src="js/homedeco_save.js?v=20260831-5"></script>
+<script src="js/homedeco_rooms.js?v=20260831-6"></script>
+<script src="js/homedeco_furniture.js?v=20260831-6"></script>
+<script src="js/homedeco_items.js?v=20260831-6"></script>
+<script src="js/homedeco_save.js?v=20260831-6"></script>
 <script>
 const addForm=document.getElementById('addForm');
 const toggleAddBtn=document.getElementById('toggleAddBtn');
 const placeSelect=document.getElementById('itemPlace');
 const itemName=document.getElementById('itemName');
+const itemUnit=document.getElementById('itemUnit');
 const favoriteItems=document.getElementById('favoriteItems');
+const unitPicks=document.getElementById('unitPicks');
+const COMMON_UNITS=['個','本','袋','パック','箱','枚','ロール','丁','束','組','巻','g','kg','ml','L'];
 
 function allPlaces(){
   const places=[];
@@ -93,19 +100,41 @@ places.forEach((p,index)=>{
 
 function renderFavorites(){
   favoriteItems.innerHTML='';
-  HomeDecoSave.getFavorites('misc').forEach(name=>{
+  HomeDecoSave.getFavorites('misc').forEach(fav=>{
     const b=document.createElement('button');
     b.type='button';
     b.className='quick-pick-btn';
-    b.textContent=name;
+    b.textContent=fav.unit?fav.name+'（'+fav.unit+'）':fav.name;
     b.onclick=()=>{
-      itemName.value=name;
+      itemName.value=fav.name;
+      itemUnit.value=fav.unit||'';
       favoriteItems.querySelectorAll('.quick-pick-btn').forEach(x=>x.classList.toggle('selected',x===b));
+      syncUnitSelection();
     };
     favoriteItems.appendChild(b);
   });
 }
+
+function renderUnitPicks(){
+  unitPicks.innerHTML='';
+  COMMON_UNITS.forEach(unit=>{
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='quick-pick-btn';
+    b.dataset.unit=unit;
+    b.textContent=unit;
+    b.onclick=()=>{itemUnit.value=unit;syncUnitSelection();};
+    unitPicks.appendChild(b);
+  });
+}
+
+function syncUnitSelection(){
+  const value=itemUnit.value.trim();
+  unitPicks.querySelectorAll('.quick-pick-btn').forEach(b=>b.classList.toggle('selected',b.dataset.unit===value));
+}
+itemUnit.addEventListener('input',syncUnitSelection);
 renderFavorites();
+renderUnitPicks();
 
 toggleAddBtn.onclick=()=>{
   addForm.hidden=!addForm.hidden;
@@ -117,11 +146,13 @@ document.getElementById('cancelAddBtn').onclick=()=>{
   document.getElementById('itemQuantity').value=1;
   toggleAddBtn.textContent='＋ 雑貨を追加';
   favoriteItems.querySelectorAll('.quick-pick-btn').forEach(x=>x.classList.remove('selected'));
+  syncUnitSelection();
 };
 
 addForm.addEventListener('submit',e=>{
   e.preventDefault();
   const name=itemName.value.trim();
+  const unit=itemUnit.value.trim();
   const place=places[Number(placeSelect.value)];
   if(!name||!place)return;
   HomeDecoSave.addItem({
@@ -129,14 +160,16 @@ addForm.addEventListener('submit',e=>{
     furniture:place.furniture,
     section:place.section,
     quantity:document.getElementById('itemQuantity').value,
-    unit:document.getElementById('itemUnit').value,
+    unit,
     memo:document.getElementById('itemMemo').value
   });
-  HomeDecoSave.addFavorite('misc',name);
+  HomeDecoSave.addFavorite('misc',name,unit);
   addForm.reset();
   document.getElementById('itemQuantity').value=1;
   addForm.hidden=true;
   toggleAddBtn.textContent='＋ 雑貨を追加';
+  favoriteItems.querySelectorAll('.quick-pick-btn').forEach(x=>x.classList.remove('selected'));
+  syncUnitSelection();
   renderFavorites();
   render();
 });
@@ -216,7 +249,7 @@ function changePlace(iid,item){
 
 function openStorage(item){
   if(!item.furniture)return;
-  location.href='homedeco_item.html?furniture='+encodeURIComponent(item.furniture);
+  location.href='homedeco_item.html?furniture='+encodeURIComponent(item.furniture)+'&v=20260831-6';
 }
 
 function removeItem(iid,item){
