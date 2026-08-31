@@ -1,3 +1,77 @@
-<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>部屋を選ぶ</title><link rel="stylesheet" href="style.css"></head><body><main class="app"><div class="topbar"><button class="btn" onclick="location.href='homedeco_top.html'">←</button><h1>部屋を選ぶ</h1><button class="btn" id="saveBtn">保存</button></div><section class="panel"><div id="floors"></div></section><div class="nav-bottom"><button class="btn soft" onclick="location.href='homedeco_gomi.html'">ゴミ袋</button><button class="btn soft" onclick="location.href='homedeco_consult.html'">相談</button><button class="btn" id="backupBtn">バックアップ</button></div></main><script src="js/homedeco_rooms.js"></script><script src="js/homedeco_items.js"></script><script src="js/homedeco_save.js"></script><script>
-HomeDecoSave.ensure();const root=document.getElementById('floors');[1,2].forEach(f=>{const sec=document.createElement('section');sec.className='floor';sec.innerHTML='<h2 class="subtitle">'+f+'階</h2>';const list=document.createElement('div');list.className='room-list';Object.entries(HOMEDECO_ROOMS).filter(([,r])=>r.floor===f).forEach(([id,r])=>{const b=document.createElement('button');b.className='btn room-btn';b.textContent=r.name;b.onclick=()=>location.href='homedeco_room.html?room='+encodeURIComponent(id);list.appendChild(b)});sec.appendChild(list);root.appendChild(sec)});document.getElementById('saveBtn').onclick=()=>{HomeDecoSave.save(HomeDecoSave.ensure());alert('保存しました。')};document.getElementById('backupBtn').onclick=()=>HomeDecoSave.exportSave();
-</script></body></html>
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>HOME DECO</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="app">
+  <div class="topbar">
+    <button class="btn" onclick="location.href='homedeco_top.html'">←</button>
+    <h1>HOME DECO</h1>
+    <button class="btn" id="saveBtn">保存</button>
+  </div>
+
+  <section class="home-stock-grid">
+    <button class="home-stock-card fridge-card" onclick="location.href='homedeco_item.html?furniture=fridge'">
+      <span class="home-stock-title">冷蔵庫</span>
+      <span class="home-stock-sub" id="fridgeCount">中身を見る</span>
+    </button>
+    <button class="home-stock-card misc-card" onclick="location.href='homedeco_misc.html'">
+      <span class="home-stock-title">雑貨</span>
+      <span class="home-stock-sub" id="miscCount">家中の雑貨を見る</span>
+    </button>
+  </section>
+
+  <section class="house-nav panel">
+    <h2 class="house-nav-title">家から見る</h2>
+    <p class="house-nav-note">部屋 → 家具 → 収納場所から探す</p>
+    <div id="floors"></div>
+  </section>
+
+  <div class="nav-bottom">
+    <button class="btn soft" onclick="location.href='homedeco_gomi.html'">ゴミ袋</button>
+    <button class="btn soft" onclick="location.href='homedeco_consult.html'">相談</button>
+    <button class="btn" id="backupBtn">バックアップ</button>
+  </div>
+</main>
+
+<script src="js/homedeco_rooms.js"></script>
+<script src="js/homedeco_furniture.js"></script>
+<script src="js/homedeco_items.js"></script>
+<script src="js/homedeco_save.js"></script>
+<script>
+const state=HomeDecoSave.ensure();
+const fridgeItems=Object.values(state.items).filter(i=>i.furniture==='fridge');
+const miscItems=Object.values(state.items).filter(i=>i.furniture&&i.furniture!=='fridge');
+document.getElementById('fridgeCount').textContent=fridgeItems.length?fridgeItems.length+'件を管理中':'中身を見る';
+document.getElementById('miscCount').textContent=miscItems.length?miscItems.length+'件を管理中':'家中の雑貨を見る';
+
+const root=document.getElementById('floors');
+[1,2].forEach(floorNo=>{
+  const sec=document.createElement('section');
+  sec.className='floor house-floor';
+  sec.innerHTML='<h3 class="subtitle">'+floorNo+'階</h3>';
+  const list=document.createElement('div');
+  list.className='room-list';
+  Object.entries(HOMEDECO_ROOMS).filter(([,r])=>r.floor===floorNo).forEach(([id,r])=>{
+    const b=document.createElement('button');
+    b.className='btn room-btn';
+    b.textContent=r.name;
+    b.onclick=()=>location.href='homedeco_room.html?room='+encodeURIComponent(id);
+    list.appendChild(b);
+  });
+  sec.appendChild(list);
+  root.appendChild(sec);
+});
+
+document.getElementById('saveBtn').onclick=()=>{
+  HomeDecoSave.save(HomeDecoSave.ensure());
+  alert('保存しました。');
+};
+document.getElementById('backupBtn').onclick=()=>HomeDecoSave.exportSave();
+</script>
+</body>
+</html>
