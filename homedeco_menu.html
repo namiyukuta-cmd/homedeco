@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>HOME DECO</title>
-<link rel="stylesheet" href="style.css?v=20260831-8">
+<link rel="stylesheet" href="style.css?v=20260831-9">
 <style>
 .github-save-panel{margin-top:12px}.github-save-row{display:flex;gap:8px;flex-wrap:wrap}.github-save-row .btn{flex:1;min-width:120px}.github-token-input{width:100%;box-sizing:border-box;font-size:17px;padding:12px;border:1px solid #bfae9b;border-radius:10px;background:#fff}.github-save-status{margin:8px 0 0;font-size:15px;line-height:1.5}.github-settings{margin-top:10px}
 </style>
@@ -12,19 +12,23 @@
 <body>
 <main class="app">
   <div class="topbar">
-    <button class="btn" onclick="location.href='homedeco_top.html?v=20260831-8'">←</button>
+    <button class="btn" onclick="location.href='homedeco_top.html?v=20260831-9'">←</button>
     <h1>HOME DECO</h1>
     <button class="btn" id="saveBtn">保存</button>
   </div>
 
   <section class="home-stock-grid">
-    <button class="home-stock-card fridge-card" onclick="location.href='homedeco_item.html?furniture=fridge&v=20260831-8'">
-      <span class="home-stock-title">冷蔵庫</span>
-      <span class="home-stock-sub" id="fridgeCount">中身を見る</span>
+    <button class="home-stock-card fridge-card" onclick="location.href='homedeco_item.html?furniture=fridge&v=20260831-9'">
+      <span class="home-stock-title">食材</span>
+      <span class="home-stock-sub" id="foodCount">冷蔵庫の中身</span>
     </button>
-    <button class="home-stock-card misc-card" onclick="location.href='homedeco_misc.html?v=20260831-8'">
+    <button class="home-stock-card seasoning-card" onclick="location.href='homedeco_item.html?furniture=pantry&v=20260831-9'">
+      <span class="home-stock-title">調味料</span>
+      <span class="home-stock-sub" id="seasoningCount">食品棚を見る</span>
+    </button>
+    <button class="home-stock-card misc-card" onclick="location.href='homedeco_misc.html?v=20260831-9'">
       <span class="home-stock-title">雑貨</span>
-      <span class="home-stock-sub" id="miscCount">家中の雑貨を見る</span>
+      <span class="home-stock-sub" id="miscCount">家中の雑貨</span>
     </button>
   </section>
 
@@ -52,22 +56,24 @@
   </section>
 
   <div class="nav-bottom">
-    <button class="btn soft" onclick="location.href='homedeco_gomi.html?v=20260831-8'">ゴミ袋</button>
-    <button class="btn soft" onclick="location.href='homedeco_consult.html?v=20260831-8'">相談</button>
+    <button class="btn soft" onclick="location.href='homedeco_gomi.html?v=20260831-9'">ゴミ袋</button>
+    <button class="btn soft" onclick="location.href='homedeco_consult.html?v=20260831-9'">相談</button>
     <button class="btn" id="backupBtn">JSONバックアップ</button>
   </div>
 </main>
 
-<script src="js/homedeco_rooms.js?v=20260831-8"></script>
-<script src="js/homedeco_furniture.js?v=20260831-8"></script>
-<script src="js/homedeco_items.js?v=20260831-8"></script>
-<script src="js/homedeco_save.js?v=20260831-8"></script>
+<script src="js/homedeco_rooms.js?v=20260831-9"></script>
+<script src="js/homedeco_furniture.js?v=20260831-9"></script>
+<script src="js/homedeco_items.js?v=20260831-9"></script>
+<script src="js/homedeco_save.js?v=20260831-9"></script>
 <script>
 const state=HomeDecoSave.ensure();
-const fridgeItems=Object.values(state.items).filter(i=>i.furniture==='fridge');
-const miscItems=Object.values(state.items).filter(i=>i.furniture&&i.furniture!=='fridge');
-document.getElementById('fridgeCount').textContent=fridgeItems.length?fridgeItems.length+'件を管理中':'中身を見る';
-document.getElementById('miscCount').textContent=miscItems.length?miscItems.length+'件を管理中':'家中の雑貨を見る';
+const foodItems=Object.values(state.items).filter(i=>i.furniture==='fridge');
+const seasoningItems=Object.values(state.items).filter(i=>i.furniture==='pantry');
+const miscItems=Object.values(state.items).filter(i=>i.furniture&&i.furniture!=='fridge'&&i.furniture!=='pantry');
+document.getElementById('foodCount').textContent=foodItems.length?foodItems.length+'件を管理中':'冷蔵庫の中身';
+document.getElementById('seasoningCount').textContent=seasoningItems.length?seasoningItems.length+'件を管理中':'食品棚を見る';
+document.getElementById('miscCount').textContent=miscItems.length?miscItems.length+'件を管理中':'家中の雑貨';
 
 const root=document.getElementById('floors');
 [1,2].forEach(floorNo=>{
@@ -80,7 +86,7 @@ const root=document.getElementById('floors');
     const b=document.createElement('button');
     b.className='btn room-btn';
     b.textContent=r.name;
-    b.onclick=()=>location.href='homedeco_room.html?room='+encodeURIComponent(id)+'&v=20260831-8';
+    b.onclick=()=>location.href='homedeco_room.html?room='+encodeURIComponent(id)+'&v=20260831-9';
     list.appendChild(b);
   });
   sec.appendChild(list);
