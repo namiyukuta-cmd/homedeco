@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>家具の中</title>
-<link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="style.css?v=20260831-5">
 </head>
 <body>
 <main class="app">
@@ -17,8 +17,12 @@
   <section class="panel add-item-panel">
     <button class="btn primary add-toggle" id="toggleAddBtn" type="button">＋ 中身を追加</button>
     <form id="addForm" class="item-form" hidden>
+      <div class="field quick-pick-field" id="favoriteField" hidden>
+        <label>よく買うもの</label>
+        <div id="favoriteItems" class="quick-pick-grid"></div>
+      </div>
       <div class="field">
-        <label for="itemName">名前</label>
+        <label for="itemName" id="itemNameLabel">名前</label>
         <input id="itemName" name="name" autocomplete="off" placeholder="例：牛乳" required>
       </div>
       <div class="field">
@@ -53,11 +57,11 @@
   <section class="storage-contents" id="contents"></section>
 </main>
 
-<script src="js/homedeco_furniture.js"></script>
-<script src="js/homedeco_items.js"></script>
-<script src="js/homedeco_gomi_rules.js"></script>
-<script src="js/homedeco_gomi_schedule.js"></script>
-<script src="js/homedeco_save.js"></script>
+<script src="js/homedeco_furniture.js?v=20260831-5"></script>
+<script src="js/homedeco_items.js?v=20260831-5"></script>
+<script src="js/homedeco_gomi_rules.js?v=20260831-5"></script>
+<script src="js/homedeco_gomi_schedule.js?v=20260831-5"></script>
+<script src="js/homedeco_save.js?v=20260831-5"></script>
 <script>
 const fid=new URLSearchParams(location.search).get('furniture');
 const f=HOMEDECO_FURNITURE[fid];
@@ -65,6 +69,9 @@ const addForm=document.getElementById('addForm');
 const toggleAddBtn=document.getElementById('toggleAddBtn');
 const cancelAddBtn=document.getElementById('cancelAddBtn');
 const sectionSelect=document.getElementById('itemSection');
+const itemName=document.getElementById('itemName');
+const favoriteField=document.getElementById('favoriteField');
+const favoriteItems=document.getElementById('favoriteItems');
 
 if(!f){
   location.href='homedeco_menu.html';
@@ -77,25 +84,47 @@ if(!f){
     opt.textContent=secName;
     sectionSelect.appendChild(opt);
   });
+  if(fid==='fridge'){
+    favoriteField.hidden=false;
+    document.getElementById('itemNameLabel').textContent='なければ入力';
+    renderFavorites();
+  }
   render();
+}
+
+function renderFavorites(){
+  if(fid!=='fridge')return;
+  favoriteItems.innerHTML='';
+  HomeDecoSave.getFavorites('fridge').forEach(name=>{
+    const b=document.createElement('button');
+    b.type='button';
+    b.className='quick-pick-btn';
+    b.textContent=name;
+    b.onclick=()=>{
+      itemName.value=name;
+      favoriteItems.querySelectorAll('.quick-pick-btn').forEach(x=>x.classList.toggle('selected',x===b));
+    };
+    favoriteItems.appendChild(b);
+  });
 }
 
 toggleAddBtn.onclick=()=>{
   addForm.hidden=!addForm.hidden;
   toggleAddBtn.textContent=addForm.hidden?'＋ 中身を追加':'− 入力を閉じる';
-  if(!addForm.hidden){document.getElementById('itemName').focus();}
+  if(!addForm.hidden&&fid!=='fridge')itemName.focus();
 };
 cancelAddBtn.onclick=()=>{
   addForm.hidden=true;
   addForm.reset();
   document.getElementById('itemQuantity').value=1;
   toggleAddBtn.textContent='＋ 中身を追加';
+  favoriteItems.querySelectorAll('.quick-pick-btn').forEach(x=>x.classList.remove('selected'));
 };
 
 addForm.addEventListener('submit',e=>{
   e.preventDefault();
   if(!f)return;
-  const name=document.getElementById('itemName').value.trim();
+  const name=itemName.value.trim();
   if(!name)return;
   HomeDecoSave.addItem({
     name,
@@ -106,10 +135,12 @@ addForm.addEventListener('submit',e=>{
     expiration:document.getElementById('itemExpiration').value,
     memo:document.getElementById('itemMemo').value
   });
+  if(fid==='fridge')HomeDecoSave.addFavorite('fridge',name);
   addForm.reset();
   document.getElementById('itemQuantity').value=1;
   addForm.hidden=true;
   toggleAddBtn.textContent='＋ 中身を追加';
+  if(fid==='fridge')renderFavorites();
   render();
 });
 
