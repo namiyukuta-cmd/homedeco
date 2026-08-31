@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>雑貨</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<main class="app">
+  <div class="topbar">
+    <button class="btn" onclick="location.href='homedeco_menu.html'">←</button>
+    <h1>雑貨</h1>
+    <button class="btn" onclick="location.href='homedeco_gomi.html'">ゴミ</button>
+  </div>
+
+  <section class="panel add-item-panel">
+    <button class="btn primary add-toggle" id="toggleAddBtn" type="button">＋ 雑貨を追加</button>
+    <form id="addForm" class="item-form" hidden>
+      <div class="field">
+        <label for="itemName">名前</label>
+        <input id="itemName" autocomplete="off" placeholder="例：洗剤、ティッシュ" required>
+      </div>
+      <div class="field">
+        <label for="itemPlace">しまう場所</label>
+        <select id="itemPlace"></select>
+      </div>
+      <div class="form-grid">
+        <div class="field">
+          <label for="itemQuantity">数量</label>
+          <input id="itemQuantity" type="number" min="0" step="any" value="1" inputmode="decimal">
+        </div>
+        <div class="field">
+          <label for="itemUnit">単位</label>
+          <input id="itemUnit" autocomplete="off" placeholder="個・本・袋など">
+        </div>
+      </div>
+      <div class="field">
+        <label for="itemMemo">メモ（任意）</label>
+        <textarea id="itemMemo" rows="2"></textarea>
+      </div>
+      <div class="form-actions">
+        <button class="btn primary" type="submit">追加する</button>
+        <button class="btn" id="cancelAddBtn" type="button">キャンセル</button>
+      </div>
+    </form>
+  </section>
+
+  <section class="panel misc-list-panel">
+    <div class="misc-list-head">
+      <span>品名</span><span>残数量</span><span>収納場所</span>
+    </div>
+    <div id="miscList"></div>
+  </section>
+</main>
+
+<script src="js/homedeco_rooms.js"></script>
+<script src="js/homedeco_furniture.js"></script>
+<script src="js/homedeco_items.js"></script>
+<script src="js/homedeco_save.js"></script>
+<script>
+const addForm=document.getElementById('addForm');
+const toggleAddBtn=document.getElementById('toggleAddBtn');
+const placeSelect=document.getElementById('itemPlace');
+
+function allPlaces(){
+  const places=[];
+  Object.entries(HOMEDECO_FURNITURE).forEach(([fid,f])=>{
+    if(fid==='fridge')return;
+    const room=HOMEDECO_ROOMS[f.room];
+    f.sections.forEach(section=>places.push({
+      furniture:fid,
+      section,
+      label:(room?room.name+' ＞ ':'')+f.name+' ＞ '+section
+    }));
+  });
+  return places;
+}
+
+const places=allPlaces();
+places.forEach((p,index)=>{
+  const o=document.createElement('option');
+  o.value=String(index);
+  o.textContent=p.label;
+  placeSelect.appendChild(o);
+});
+
+toggleAddBtn.onclick=()=>{
+  addForm.hidden=!addForm.hidden;
+  toggleAddBtn.textContent=addForm.hidden?'＋ 雑貨を追加':'− 入力を閉じる';
+  if(!addForm.hidden)document.getElementById('itemName').focus();
+};
+document.getElementById('cancelAddBtn').onclick=()=>{
+  addForm.hidden=true;
+  addForm.reset();
+  document.getElementById('itemQuantity').value=1;
+  toggleAddBtn.textContent='＋ 雑貨を追加';
+};
+
+addForm.addEventListener('submit',e=>{
+  e.preventDefault();
+  const name=document.getElementById('itemName').value.trim();
+  const place=places[Number(placeSelect.value)];
+  if(!name||!place)return;
+  HomeDecoSave.addItem({
+    name,
+    furniture:place.furniture,
+    section:place.section,
+    quantity:document.getElementById('itemQuantity').value,
+    unit:document.getElementById('itemUnit').value,
+    memo:document.getElementById('itemMemo').value
+  });
+  addForm.reset();
+  document.getElementById('itemQuantity').value=1;
+  addForm.hidden=true;
+  toggleAddBtn.textContent='＋ 雑貨を追加';
+  render();
+});
+
+function placeLabel(item){
+  const f=HOMEDECO_FURNITURE[item.furniture];
+  if(!f)return '未登録';
+  const room=HOMEDECO_ROOMS[f.room];
+  return (room?room.name+' ＞ ':'')+f.name+' ＞ '+(item.section||'');
+}
+
+function render(){
+  const list=document.getElementById('miscList');
+  list.innerHTML='';
+  const rows=Object.entries(HomeDecoSave.ensure().items)
+    .filter(([,item])=>item.furniture&&item.furniture!=='fridge')
+    .sort((a,b)=>a[1].name.localeCompare(b[1].name,'ja'));
+
+  if(!rows.length){
+    const empty=document.createElement('div');
+    empty.className='empty';
+    empty.textContent='まだ雑貨は登録されていません。';
+    list.appendChild(empty);
+    return;
+  }
+
+  rows.forEach(([iid,item])=>{
+    const wrap=document.createElement('div');
+    wrap.className='misc-row-wrap';
+    const row=document.createElement('button');
+    row.type='button';
+    row.className='misc-row';
+    row.innerHTML='<span class="misc-name">'+esc(item.name)+'</span><span class="misc-qty">'+esc(item.quantity)+' '+esc(item.unit||'')+'</span><span class="misc-place">'+esc(placeLabel(item))+'</span>';
+
+    const actions=document.createElement('div');
+    actions.className='misc-edit-actions';
+    actions.hidden=true;
+    actions.append(
+      editBtn('数量',()=>changeQuantity(iid,item)),
+      editBtn('収納を見る',()=>openStorage(item)),
+      editBtn('場所変更',()=>changePlace(iid,item)),
+      editBtn('削除',()=>removeItem(iid,item),'danger')
+    );
+    row.onclick=()=>{actions.hidden=!actions.hidden;};
+    wrap.append(row,actions);
+    list.appendChild(wrap);
+  });
+}
+
+function editBtn(label,fn,extra=''){
+  const b=document.createElement('button');
+  b.type='button';
+  b.className='btn misc-edit-btn'+(extra?' '+extra:'');
+  b.textContent=label;
+  b.onclick=fn;
+  return b;
+}
+
+function changeQuantity(iid,item){
+  const n=prompt('数量',item.quantity);
+  if(n===null)return;
+  const v=Number(n);
+  if(!Number.isFinite(v)||v<0)return alert('0以上の数字を入力してください。');
+  HomeDecoSave.updateItem(iid,{quantity:v});
+  render();
+}
+
+function changePlace(iid,item){
+  const text=places.map((p,i)=>(i+1)+': '+p.label).join('\n');
+  const n=prompt('移動先の番号を入力してください。\n'+text,'');
+  if(n===null)return;
+  const p=places[Number(n)-1];
+  if(!p)return alert('番号を選んでください。');
+  HomeDecoSave.updateItem(iid,{furniture:p.furniture,section:p.section});
+  render();
+}
+
+function openStorage(item){
+  if(!item.furniture)return;
+  location.href='homedeco_item.html?furniture='+encodeURIComponent(item.furniture);
+}
+
+function removeItem(iid,item){
+  if(!confirm(item.name+'を一覧から削除しますか？'))return;
+  HomeDecoSave.removeItem(iid);
+  render();
+}
+
+function esc(v){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+
+render();
+</script>
+</body>
+</html>
