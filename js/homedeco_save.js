@@ -3,19 +3,49 @@
  const TOKEN_KEY='homedeco_github_token_v1';
  const CLOUD={owner:'namiyukuta-cmd',repo:'private-game-data',path:'homedeco/save.json'};
  const DEFAULT_FAVORITES={
-   fridge:['牛乳','卵','納豆','豆腐','ヨーグルト','バナナ','食パン','鶏もも肉','豚肉'],
-   misc:['トイレットペーパー','ティッシュ','洗濯洗剤','食器用洗剤','ゴミ袋','歯磨き粉']
+   fridge:[
+     {name:'牛乳',unit:'本'},
+     {name:'卵',unit:'パック'},
+     {name:'納豆',unit:'パック'},
+     {name:'豆腐',unit:'丁'},
+     {name:'ヨーグルト',unit:'個'},
+     {name:'バナナ',unit:'本'},
+     {name:'食パン',unit:'袋'},
+     {name:'鶏もも肉',unit:'枚'},
+     {name:'豚肉',unit:'パック'}
+   ],
+   misc:[
+     {name:'トイレットペーパー',unit:'ロール'},
+     {name:'ティッシュ',unit:'箱'},
+     {name:'洗濯洗剤',unit:'本'},
+     {name:'食器用洗剤',unit:'本'},
+     {name:'ゴミ袋',unit:'枚'},
+     {name:'歯磨き粉',unit:'本'}
+   ]
  };
 
  function clone(v){return JSON.parse(JSON.stringify(v));}
  function initial(){return {version:1,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),items:clone(window.HOMEDECO_INITIAL_ITEMS||{}),trash:{},favorites:clone(DEFAULT_FAVORITES)};}
  function load(){try{const raw=localStorage.getItem(KEY);return raw?JSON.parse(raw):null;}catch(e){return null;}}
  function save(state){state.updatedAt=new Date().toISOString();localStorage.setItem(KEY,JSON.stringify(state));return state;}
+ function normalizeFavorite(value){
+   if(typeof value==='string')return {name:value.trim(),unit:''};
+   if(value&&typeof value==='object')return {name:String(value.name||'').trim(),unit:String(value.unit||'').trim()};
+   return {name:'',unit:''};
+ }
+ function favoriteKey(name){return String(name||'').trim().toLocaleLowerCase('ja');}
  function mergeFavorites(saved,defaults){
    const out=[];
-   [...defaults,...(Array.isArray(saved)?saved:[])].forEach(name=>{
-     const n=String(name||'').trim();
-     if(n&&!out.some(x=>x.toLocaleLowerCase('ja')===n.toLocaleLowerCase('ja')))out.push(n);
+   (Array.isArray(defaults)?defaults:[]).forEach(value=>{
+     const f=normalizeFavorite(value);
+     if(f.name&&!out.some(x=>favoriteKey(x.name)===favoriteKey(f.name)))out.push(f);
+   });
+   (Array.isArray(saved)?saved:[]).forEach(value=>{
+     const f=normalizeFavorite(value);
+     if(!f.name)return;
+     const existing=out.find(x=>favoriteKey(x.name)===favoriteKey(f.name));
+     if(existing){if(f.unit)existing.unit=f.unit;}
+     else out.push(f);
    });
    return out;
  }
@@ -41,14 +71,20 @@
  function removeItem(id){const s=ensure();if(!s.items[id])return false;delete s.items[id];save(s);return true;}
  function discardItem(id){const s=ensure(),item=s.items[id];if(!item)return false;const rule=(window.HOMEDECO_GOMI_RULES||{})[item.garbage];const category=rule?rule.category:'unclassified';if(!s.trash[category])s.trash[category]=[];s.trash[category].push({id:'trash_'+Date.now(),name:item.name,quantity:item.quantity,unit:item.unit,sourceItemId:id,discardedAt:new Date().toISOString(),rule:item.garbage});delete s.items[id];save(s);return true;}
  function emptyBag(category){const s=ensure();s.trash[category]=[];save(s);}
- function getFavorites(category){const s=ensure();return Array.isArray(s.favorites[category])?[...s.favorites[category]]:[];}
- function addFavorite(category,name){
+ function getFavorites(category){const s=ensure();return Array.isArray(s.favorites[category])?clone(s.favorites[category]):[];}
+ function addFavorite(category,name,unit){
    const s=ensure();
    const n=String(name||'').trim();
+   const u=String(unit||'').trim();
    if(!n)return false;
    if(!Array.isArray(s.favorites[category]))s.favorites[category]=[];
-   if(s.favorites[category].some(x=>String(x).toLocaleLowerCase('ja')===n.toLocaleLowerCase('ja')))return false;
-   s.favorites[category].push(n);
+   const existing=s.favorites[category].find(x=>favoriteKey(normalizeFavorite(x).name)===favoriteKey(n));
+   if(existing){
+     const normalized=normalizeFavorite(existing);
+     if(u&&normalized.unit!==u){existing.name=n;existing.unit=u;save(s);return true;}
+     return false;
+   }
+   s.favorites[category].push({name:n,unit:u});
    save(s);
    return true;
  }
