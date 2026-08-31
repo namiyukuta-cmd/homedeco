@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Home Deco</title>
-<link rel="stylesheet" href="style.css?v=20260831-2">
+<link rel="stylesheet" href="style.css?v=20260831-3">
 <style>
 .github-login{margin-top:14px}.github-token-input{width:100%;box-sizing:border-box;font-size:17px;padding:12px;border:1px solid #bfae9b;border-radius:10px;background:#fff}.github-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}.github-row .btn{flex:1;min-width:130px}.cloud-status{margin-top:8px;font-size:15px;line-height:1.5}.github-title{font-size:19px;margin:0 0 8px}.github-path{font-size:14px;margin:0 0 8px;word-break:break-all}
 </style>
@@ -18,7 +18,7 @@
     <p class="muted github-path">保存先：private-game-data / homedeco / save.json</p>
     <input id="tokenInput" class="github-token-input" type="password" autocomplete="off" placeholder="GitHubトークンを入力">
     <div class="github-row">
-      <button id="tokenSaveBtn" class="btn primary" type="button">トークンを設定</button>
+      <button id="tokenSaveBtn" class="btn primary" type="button">トークンを確認・設定</button>
       <button id="cloudLoadBtn" class="btn soft" type="button">GitHubから読込</button>
     </div>
     <p id="cloudStatus" class="cloud-status muted"></p>
@@ -33,60 +33,68 @@
     <p id="saveInfo" class="muted"></p>
   </section>
 </main>
-<script src="js/homedeco_items.js?v=20260831-2"></script>
-<script src="js/homedeco_save.js?v=20260831-2"></script>
+<script src="js/homedeco_items.js?v=20260831-3"></script>
+<script src="js/homedeco_save.js?v=20260831-3"></script>
 <script>
 const info=document.getElementById('saveInfo');
 const cloudStatus=document.getElementById('cloudStatus');
 const tokenInput=document.getElementById('tokenInput');
 
-function refreshInfo(){
+function refreshSaveInfo(){
   const s=HomeDecoSave.load();
   info.textContent=s?'端末内セーブあり：'+new Date(s.updatedAt).toLocaleString('ja-JP'):'端末内セーブはありません。';
-  cloudStatus.textContent=HomeDecoSave.getToken()?'GitHubトークン設定済み':'GitHubトークン未設定';
 }
-refreshInfo();
+
+async function verifyStoredToken(){
+  if(!HomeDecoSave.getToken()){cloudStatus.textContent='GitHubトークン未設定';return false;}
+  cloudStatus.textContent='GitHubトークンを確認中…';
+  try{
+    await HomeDecoSave.checkToken();
+    cloudStatus.textContent='GitHub認証OK。Home Decoの「保存」でGitHubにも保存できます。';
+    return true;
+  }catch(e){
+    if(e.status===401)HomeDecoSave.clearToken();
+    cloudStatus.textContent=e.message;
+    return false;
+  }
+}
+
+refreshSaveInfo();
+verifyStoredToken();
 
 document.getElementById('newBtn').onclick=()=>{
   const s=HomeDecoSave.load();
   if(s&&!confirm('端末内の現在セーブを消して、はじめからにしますか？'))return;
   HomeDecoSave.reset();
-  location.href='homedeco_menu.html?v=20260831-2';
+  location.href='homedeco_menu.html?v=20260831-3';
 };
 
-document.getElementById('continueBtn').onclick=async()=>{
-  if(HomeDecoSave.getToken()){
-    cloudStatus.textContent='GitHubから読み込み中…';
-    try{await HomeDecoSave.loadFromGitHub();location.href='homedeco_menu.html?v=20260831-2';return;}
-    catch(e){
-      if(HomeDecoSave.load()){
-        if(confirm(e.message+'\n\n端末内のセーブで続けますか？'))location.href='homedeco_menu.html?v=20260831-2';
-      }else{cloudStatus.textContent=e.message;alert(e.message);}
-      return;
-    }
-  }
-  if(HomeDecoSave.load()){location.href='homedeco_menu.html?v=20260831-2';return;}
-  cloudStatus.textContent='GitHubのセーブを読むには、上のトークン欄に入力してください。';
-  tokenInput.focus();
-};
+document.getElementById('continueBtn').onclick=()=>location.href='homedeco_menu.html?v=20260831-3';
 
-document.getElementById('tokenSaveBtn').onclick=()=>{
-  const token=tokenInput.value.trim();
-  if(!token){alert('トークンを入力してください。');return;}
+document.getElementById('tokenSaveBtn').onclick=async()=>{
+  const token=tokenInput.value;
+  if(!token.trim()){alert('トークンを入力してください。');return;}
+  cloudStatus.textContent='GitHubでトークンを確認中…';
   HomeDecoSave.setToken(token);
-  tokenInput.value='';
-  refreshInfo();
-  cloudStatus.textContent='GitHubトークン設定済み';
-  alert('この端末にGitHubトークンを設定しました。');
+  try{
+    await HomeDecoSave.checkToken();
+    tokenInput.value='';
+    cloudStatus.textContent='GitHub認証OK。設定できました。';
+    alert('GitHub認証OKです。');
+  }catch(e){
+    if(e.status===401)HomeDecoSave.clearToken();
+    cloudStatus.textContent=e.message;
+    alert(e.message);
+  }
 };
 
 document.getElementById('cloudLoadBtn').onclick=async()=>{
-  const typed=tokenInput.value.trim();
-  if(typed)HomeDecoSave.setToken(typed);
+  const typed=tokenInput.value;
+  if(typed.trim())HomeDecoSave.setToken(typed);
   if(!HomeDecoSave.getToken()){alert('トークンを入力してください。');return;}
   cloudStatus.textContent='GitHubから読み込み中…';
-  try{await HomeDecoSave.loadFromGitHub();location.href='homedeco_menu.html?v=20260831-2';}
-  catch(e){cloudStatus.textContent=e.message;alert(e.message);}
+  try{await HomeDecoSave.loadFromGitHub();location.href='homedeco_menu.html?v=20260831-3';}
+  catch(e){if(e.status===401)HomeDecoSave.clearToken();cloudStatus.textContent=e.message;alert(e.message);}
 };
 </script>
 </body>
