@@ -146,5 +146,27 @@
    return load();
  }
 
+ function setupQuantitySelect(){
+   const input=document.getElementById('itemQuantity');
+   if(!input||input.tagName==='SELECT')return;
+   const select=document.createElement('select');
+   select.id=input.id;
+   select.name=input.name||'';
+   select.className=input.className;
+   for(let n=1;n<=20;n++){
+     const option=document.createElement('option');
+     option.value=String(n);
+     option.textContent=String(n);
+     select.appendChild(option);
+   }
+   const current=Number(input.value);
+   select.value=String(current>=1&&current<=20?current:1);
+   input.replaceWith(select);
+   const picks=document.getElementById('quantityPicks');
+   const pickField=picks&&picks.closest('.quick-pick-field');
+   if(pickField)pickField.hidden=true;
+ }
+
  window.HomeDecoSave={KEY,TOKEN_KEY,CLOUD,DEFAULT_FAVORITES,initial,load,save,ensure,reset,hasSave,addItem,updateItem,removeItem,discardItem,emptyBag,getFavorites,addFavorite,exportSave,importSave,getToken,setToken,clearToken,checkToken,saveToGitHub,loadFromGitHub};
+ setupQuantitySelect();
 })();
