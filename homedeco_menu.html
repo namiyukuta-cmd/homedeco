@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>HOME DECO</title>
 <link rel="stylesheet" href="style.css">
+<style>
+.github-save-panel{margin-top:12px}.github-save-row{display:flex;gap:8px;flex-wrap:wrap}.github-save-row .btn{flex:1;min-width:120px}.github-token-input{width:100%;box-sizing:border-box;font-size:17px;padding:12px;border:1px solid #bfae9b;border-radius:10px;background:#fff}.github-save-status{margin:8px 0 0;font-size:15px;line-height:1.5}.github-settings{margin-top:10px}
+</style>
 </head>
 <body>
 <main class="app">
@@ -31,10 +34,27 @@
     <div id="floors"></div>
   </section>
 
+  <section class="panel github-save-panel">
+    <div class="github-save-row">
+      <button class="btn primary" id="cloudSaveBtn">GitHubへ保存</button>
+      <button class="btn soft" id="cloudLoadBtn">GitHubから読込</button>
+    </div>
+    <button class="btn github-settings" id="tokenToggleBtn" type="button">GitHub設定</button>
+    <div id="tokenPanel" hidden>
+      <p class="muted">private-game-data / homedeco / save.json</p>
+      <input id="tokenInput" class="github-token-input" type="password" autocomplete="off" placeholder="GitHubトークンを入力">
+      <div class="github-save-row" style="margin-top:8px">
+        <button class="btn primary" id="tokenSaveBtn" type="button">トークンを設定</button>
+        <button class="btn" id="tokenClearBtn" type="button">トークンを消す</button>
+      </div>
+    </div>
+    <p id="cloudStatus" class="github-save-status muted"></p>
+  </section>
+
   <div class="nav-bottom">
     <button class="btn soft" onclick="location.href='homedeco_gomi.html'">ゴミ袋</button>
     <button class="btn soft" onclick="location.href='homedeco_consult.html'">相談</button>
-    <button class="btn" id="backupBtn">バックアップ</button>
+    <button class="btn" id="backupBtn">JSONバックアップ</button>
   </div>
 </main>
 
@@ -67,10 +87,45 @@ const root=document.getElementById('floors');
   root.appendChild(sec);
 });
 
-document.getElementById('saveBtn').onclick=()=>{
+const cloudStatus=document.getElementById('cloudStatus');
+const tokenPanel=document.getElementById('tokenPanel');
+const tokenInput=document.getElementById('tokenInput');
+function updateTokenStatus(){
+  cloudStatus.textContent=HomeDecoSave.getToken()?'GitHubトークン設定済み':'GitHubトークン未設定';
+}
+updateTokenStatus();
+
+document.getElementById('saveBtn').onclick=async()=>{
   HomeDecoSave.save(HomeDecoSave.ensure());
-  alert('保存しました。');
+  if(!HomeDecoSave.getToken()){alert('端末内に保存しました。GitHub保存にはトークン設定が必要です。');return;}
+  cloudStatus.textContent='GitHubへ保存中…';
+  try{await HomeDecoSave.saveToGitHub();cloudStatus.textContent='GitHubへ保存しました。';}
+  catch(e){cloudStatus.textContent=e.message;alert(e.message);}
 };
+
+document.getElementById('cloudSaveBtn').onclick=async()=>{
+  if(!HomeDecoSave.getToken()){tokenPanel.hidden=false;tokenInput.focus();cloudStatus.textContent='先にGitHubトークンを設定してください。';return;}
+  cloudStatus.textContent='GitHubへ保存中…';
+  try{await HomeDecoSave.saveToGitHub();cloudStatus.textContent='GitHubへ保存しました。';}
+  catch(e){cloudStatus.textContent=e.message;alert(e.message);}
+};
+
+document.getElementById('cloudLoadBtn').onclick=async()=>{
+  if(!HomeDecoSave.getToken()){tokenPanel.hidden=false;tokenInput.focus();cloudStatus.textContent='先にGitHubトークンを設定してください。';return;}
+  if(HomeDecoSave.hasSave()&&!confirm('端末内の現在データをGitHubのセーブで置き換えますか？'))return;
+  cloudStatus.textContent='GitHubから読み込み中…';
+  try{await HomeDecoSave.loadFromGitHub();cloudStatus.textContent='GitHubから読み込みました。';location.reload();}
+  catch(e){cloudStatus.textContent=e.message;alert(e.message);}
+};
+
+document.getElementById('tokenToggleBtn').onclick=()=>{tokenPanel.hidden=!tokenPanel.hidden;if(!tokenPanel.hidden)tokenInput.focus();};
+document.getElementById('tokenSaveBtn').onclick=()=>{
+  const token=tokenInput.value.trim();
+  if(!token){alert('トークンを入力してください。');return;}
+  HomeDecoSave.setToken(token);tokenInput.value='';tokenPanel.hidden=true;updateTokenStatus();
+  alert('この端末にGitHubトークンを設定しました。');
+};
+document.getElementById('tokenClearBtn').onclick=()=>{HomeDecoSave.clearToken();tokenInput.value='';updateTokenStatus();alert('この端末からトークンを削除しました。');};
 document.getElementById('backupBtn').onclick=()=>HomeDecoSave.exportSave();
 </script>
 </body>
