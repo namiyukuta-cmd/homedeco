@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>HOME DECO</title>
-<link rel="stylesheet" href="style.css?v=20260831-3">
+<link rel="stylesheet" href="style.css?v=20260831-5">
 <style>
 .github-save-panel{margin-top:12px}.github-save-row{display:flex;gap:8px;flex-wrap:wrap}.github-save-row .btn{flex:1;min-width:120px}.github-token-input{width:100%;box-sizing:border-box;font-size:17px;padding:12px;border:1px solid #bfae9b;border-radius:10px;background:#fff}.github-save-status{margin:8px 0 0;font-size:15px;line-height:1.5}.github-settings{margin-top:10px}
 </style>
@@ -12,17 +12,17 @@
 <body>
 <main class="app">
   <div class="topbar">
-    <button class="btn" onclick="location.href='homedeco_top.html?v=20260831-3'">←</button>
+    <button class="btn" onclick="location.href='homedeco_top.html?v=20260831-5'">←</button>
     <h1>HOME DECO</h1>
     <button class="btn" id="saveBtn">保存</button>
   </div>
 
   <section class="home-stock-grid">
-    <button class="home-stock-card fridge-card" onclick="location.href='homedeco_item.html?furniture=fridge'">
+    <button class="home-stock-card fridge-card" onclick="location.href='homedeco_item.html?furniture=fridge&v=20260831-5'">
       <span class="home-stock-title">冷蔵庫</span>
       <span class="home-stock-sub" id="fridgeCount">中身を見る</span>
     </button>
-    <button class="home-stock-card misc-card" onclick="location.href='homedeco_misc.html'">
+    <button class="home-stock-card misc-card" onclick="location.href='homedeco_misc.html?v=20260831-5'">
       <span class="home-stock-title">雑貨</span>
       <span class="home-stock-sub" id="miscCount">家中の雑貨を見る</span>
     </button>
@@ -58,10 +58,10 @@
   </div>
 </main>
 
-<script src="js/homedeco_rooms.js?v=20260831-3"></script>
-<script src="js/homedeco_furniture.js?v=20260831-3"></script>
-<script src="js/homedeco_items.js?v=20260831-3"></script>
-<script src="js/homedeco_save.js?v=20260831-3"></script>
+<script src="js/homedeco_rooms.js?v=20260831-5"></script>
+<script src="js/homedeco_furniture.js?v=20260831-5"></script>
+<script src="js/homedeco_items.js?v=20260831-5"></script>
+<script src="js/homedeco_save.js?v=20260831-5"></script>
 <script>
 const state=HomeDecoSave.ensure();
 const fridgeItems=Object.values(state.items).filter(i=>i.furniture==='fridge');
