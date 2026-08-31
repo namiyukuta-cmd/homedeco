@@ -4,12 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>雑貨</title>
-<link rel="stylesheet" href="style.css?v=20260831-6">
+<link rel="stylesheet" href="style.css?v=20260831-7">
 </head>
 <body>
 <main class="app">
   <div class="topbar">
-    <button class="btn" onclick="location.href='homedeco_menu.html?v=20260831-6'">←</button>
+    <button class="btn" onclick="location.href='homedeco_menu.html?v=20260831-7'">←</button>
     <h1>雑貨</h1>
     <button class="btn" onclick="location.href='homedeco_gomi.html'">ゴミ</button>
   </div>
@@ -62,10 +62,10 @@
   </section>
 </main>
 
-<script src="js/homedeco_rooms.js?v=20260831-6"></script>
-<script src="js/homedeco_furniture.js?v=20260831-6"></script>
-<script src="js/homedeco_items.js?v=20260831-6"></script>
-<script src="js/homedeco_save.js?v=20260831-6"></script>
+<script src="js/homedeco_rooms.js?v=20260831-7"></script>
+<script src="js/homedeco_furniture.js?v=20260831-7"></script>
+<script src="js/homedeco_items.js?v=20260831-7"></script>
+<script src="js/homedeco_save.js?v=20260831-7"></script>
 <script>
 const addForm=document.getElementById('addForm');
 const toggleAddBtn=document.getElementById('toggleAddBtn');
@@ -104,12 +104,10 @@ function renderFavorites(){
     const b=document.createElement('button');
     b.type='button';
     b.className='quick-pick-btn';
-    b.textContent=fav.unit?fav.name+'（'+fav.unit+'）':fav.name;
+    b.textContent=fav.name;
     b.onclick=()=>{
       itemName.value=fav.name;
-      itemUnit.value=fav.unit||'';
       favoriteItems.querySelectorAll('.quick-pick-btn').forEach(x=>x.classList.toggle('selected',x===b));
-      syncUnitSelection();
     };
     favoriteItems.appendChild(b);
   });
@@ -249,7 +247,7 @@ function changePlace(iid,item){
 
 function openStorage(item){
   if(!item.furniture)return;
-  location.href='homedeco_item.html?furniture='+encodeURIComponent(item.furniture)+'&v=20260831-6';
+  location.href='homedeco_item.html?furniture='+encodeURIComponent(item.furniture)+'&v=20260831-7';
 }
 
 function removeItem(iid,item){
