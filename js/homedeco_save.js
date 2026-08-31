@@ -19,18 +19,34 @@
  function exportSave(){const s=ensure();const blob=new Blob([JSON.stringify(s,null,2)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='homedeco_save.json';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
  function importSave(file,done){const r=new FileReader();r.onload=()=>{try{const s=JSON.parse(r.result);save(s);done&&done(true);}catch(e){done&&done(false);}};r.readAsText(file);}
 
- function getToken(){return localStorage.getItem(TOKEN_KEY)||'';}
- function setToken(token){const t=String(token||'').trim();if(t)localStorage.setItem(TOKEN_KEY,t);else localStorage.removeItem(TOKEN_KEY);return !!t;}
+ function cleanToken(token){return String(token||'').replace(/\s+/g,'');}
+ function getToken(){return cleanToken(localStorage.getItem(TOKEN_KEY)||'');}
+ function setToken(token){const t=cleanToken(token);if(t)localStorage.setItem(TOKEN_KEY,t);else localStorage.removeItem(TOKEN_KEY);return !!t;}
  function clearToken(){localStorage.removeItem(TOKEN_KEY);}
  function cloudUrl(){return 'https://api.github.com/repos/'+encodeURIComponent(CLOUD.owner)+'/'+encodeURIComponent(CLOUD.repo)+'/contents/'+CLOUD.path.split('/').map(encodeURIComponent).join('/');}
- function headers(token){return {'Accept':'application/vnd.github+json','Authorization':'Bearer '+token,'X-GitHub-Api-Version':'2022-11-28'};}
+ function headers(token){return {'Accept':'application/vnd.github+json','Authorization':'Bearer '+cleanToken(token),'X-GitHub-Api-Version':'2022-11-28'};}
  function encodeBase64Utf8(text){const bytes=new TextEncoder().encode(text);let binary='';for(let i=0;i<bytes.length;i++)binary+=String.fromCharCode(bytes[i]);return btoa(binary);}
  function decodeBase64Utf8(text){const binary=atob(String(text||'').replace(/\s/g,''));const bytes=new Uint8Array(binary.length);for(let i=0;i<binary.length;i++)bytes[i]=binary.charCodeAt(i);return new TextDecoder().decode(bytes);}
 
+ function githubError(status,action){
+   let message='GitHub'+action+'できませんでした ('+status+')';
+   if(status===401)message='トークンがGitHubに認証されませんでした。トークンをコピーし直して、もう一度設定してください。';
+   else if(status===404)message='トークンは認証されましたが、private-game-data / homedeco / save.json を読めません。トークンのRepository accessで private-game-data が選ばれているか確認してください。';
+   else if(status===403)message='GitHubの権限が足りません。トークンのContents権限を Read and write にしてください。';
+   const err=new Error(message);err.status=status;return err;
+ }
+
  async function fetchCloudFile(token){
    const res=await fetch(cloudUrl(),{headers:headers(token)});
-   if(!res.ok){const err=new Error('GitHubから読み込めませんでした ('+res.status+')');err.status=res.status;throw err;}
+   if(!res.ok)throw githubError(res.status,'から読み込み');
    return res.json();
+ }
+
+ async function checkToken(token){
+   const t=cleanToken(token||getToken());
+   if(!t)throw new Error('GitHubトークンが入力されていません。');
+   const file=await fetchCloudFile(t);
+   return {ok:true,sha:file.sha||''};
  }
 
  async function saveToGitHub(){
@@ -42,7 +58,7 @@
    const body={message:'Update Home Deco save',content:encodeBase64Utf8(JSON.stringify(state,null,2))};
    if(sha)body.sha=sha;
    const res=await fetch(cloudUrl(),{method:'PUT',headers:Object.assign({'Content-Type':'application/json'},headers(token)),body:JSON.stringify(body)});
-   if(!res.ok)throw new Error('GitHubへ保存できませんでした ('+res.status+')');
+   if(!res.ok)throw githubError(res.status,'へ保存');
    return res.json();
  }
 
@@ -51,11 +67,11 @@
    if(!token)throw new Error('GitHubトークンが設定されていません。');
    const file=await fetchCloudFile(token);
    let state;
-   try{state=JSON.parse(decodeBase64Utf8(file.content));}catch(e){throw new Error('GitHubのsave.jsonがまだHome Decoのセーブ形式ではありません。先に「GitHubへ保存」を1回押してください。');}
+   try{state=JSON.parse(decodeBase64Utf8(file.content));}catch(e){throw new Error('GitHubのsave.jsonは今「h」だけなので、まだHome Decoのセーブではありません。最初は「GitHubへ保存」を押してください。');}
    if(!state||typeof state!=='object'||Array.isArray(state))throw new Error('GitHubのsave.jsonを読み込めません。');
    save(state);
    return state;
  }
 
- window.HomeDecoSave={KEY,TOKEN_KEY,CLOUD,initial,load,save,ensure,reset,hasSave,addItem,updateItem,removeItem,discardItem,emptyBag,exportSave,importSave,getToken,setToken,clearToken,saveToGitHub,loadFromGitHub};
+ window.HomeDecoSave={KEY,TOKEN_KEY,CLOUD,initial,load,save,ensure,reset,hasSave,addItem,updateItem,removeItem,discardItem,emptyBag,exportSave,importSave,getToken,setToken,clearToken,checkToken,saveToGitHub,loadFromGitHub};
 })();
