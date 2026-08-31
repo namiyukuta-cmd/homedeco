@@ -154,8 +154,8 @@ addForm.addEventListener('submit',e=>{
   if(!name)return;
   HomeDecoSave.addItem({
     name,
-    furniture:'seasoning',
-    section:'',
+    furniture:'',
+    section:'seasoning',
     quantity:itemQuantity.value,
     unit,
     memo:document.getElementById('itemMemo').value
@@ -175,7 +175,7 @@ function render(){
   const list=document.getElementById('seasoningList');
   list.innerHTML='';
   const rows=Object.entries(HomeDecoSave.ensure().items)
-    .filter(([,item])=>item.furniture==='seasoning')
+    .filter(([,item])=>!item.furniture&&item.section==='seasoning')
     .sort((a,b)=>a[1].name.localeCompare(b[1].name,'ja'));
   if(!rows.length){
     const empty=document.createElement('div');
