@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>HOME DECO</title>
-<link rel="stylesheet" href="style.css?v=20260831-2">
+<link rel="stylesheet" href="style.css?v=20260831-3">
 <style>
 .github-save-panel{margin-top:12px}.github-save-row{display:flex;gap:8px;flex-wrap:wrap}.github-save-row .btn{flex:1;min-width:120px}.github-token-input{width:100%;box-sizing:border-box;font-size:17px;padding:12px;border:1px solid #bfae9b;border-radius:10px;background:#fff}.github-save-status{margin:8px 0 0;font-size:15px;line-height:1.5}.github-settings{margin-top:10px}
 </style>
@@ -12,7 +12,7 @@
 <body>
 <main class="app">
   <div class="topbar">
-    <button class="btn" onclick="location.href='homedeco_top.html?v=20260831-2'">←</button>
+    <button class="btn" onclick="location.href='homedeco_top.html?v=20260831-3'">←</button>
     <h1>HOME DECO</h1>
     <button class="btn" id="saveBtn">保存</button>
   </div>
@@ -44,7 +44,7 @@
       <p class="muted">private-game-data / homedeco / save.json</p>
       <input id="tokenInput" class="github-token-input" type="password" autocomplete="off" placeholder="GitHubトークンを入力">
       <div class="github-save-row" style="margin-top:8px">
-        <button class="btn primary" id="tokenSaveBtn" type="button">トークンを設定</button>
+        <button class="btn primary" id="tokenSaveBtn" type="button">トークンを確認・設定</button>
         <button class="btn" id="tokenClearBtn" type="button">トークンを消す</button>
       </div>
     </div>
@@ -58,10 +58,10 @@
   </div>
 </main>
 
-<script src="js/homedeco_rooms.js?v=20260831-2"></script>
-<script src="js/homedeco_furniture.js?v=20260831-2"></script>
-<script src="js/homedeco_items.js?v=20260831-2"></script>
-<script src="js/homedeco_save.js?v=20260831-2"></script>
+<script src="js/homedeco_rooms.js?v=20260831-3"></script>
+<script src="js/homedeco_furniture.js?v=20260831-3"></script>
+<script src="js/homedeco_items.js?v=20260831-3"></script>
+<script src="js/homedeco_save.js?v=20260831-3"></script>
 <script>
 const state=HomeDecoSave.ensure();
 const fridgeItems=Object.values(state.items).filter(i=>i.furniture==='fridge');
@@ -90,24 +90,34 @@ const root=document.getElementById('floors');
 const cloudStatus=document.getElementById('cloudStatus');
 const tokenPanel=document.getElementById('tokenPanel');
 const tokenInput=document.getElementById('tokenInput');
-function updateTokenStatus(){
-  cloudStatus.textContent=HomeDecoSave.getToken()?'GitHubトークン設定済み':'GitHubトークン未設定';
+
+async function updateTokenStatus(){
+  if(!HomeDecoSave.getToken()){cloudStatus.textContent='GitHubトークン未設定';return false;}
+  cloudStatus.textContent='GitHubトークンを確認中…';
+  try{await HomeDecoSave.checkToken();cloudStatus.textContent='GitHub認証OK';return true;}
+  catch(e){if(e.status===401)HomeDecoSave.clearToken();cloudStatus.textContent=e.message;return false;}
 }
 updateTokenStatus();
 
+function showAuthError(e){
+  if(e.status===401){HomeDecoSave.clearToken();tokenPanel.hidden=false;tokenInput.focus();}
+  cloudStatus.textContent=e.message;
+  alert(e.message);
+}
+
 document.getElementById('saveBtn').onclick=async()=>{
   HomeDecoSave.save(HomeDecoSave.ensure());
-  if(!HomeDecoSave.getToken()){alert('端末内に保存しました。GitHub保存にはトークン設定が必要です。');return;}
+  if(!HomeDecoSave.getToken()){tokenPanel.hidden=false;cloudStatus.textContent='端末内には保存しました。GitHub保存にはトークンを設定してください。';return;}
   cloudStatus.textContent='GitHubへ保存中…';
   try{await HomeDecoSave.saveToGitHub();cloudStatus.textContent='GitHubへ保存しました。';}
-  catch(e){cloudStatus.textContent=e.message;alert(e.message);}
+  catch(e){showAuthError(e);}
 };
 
 document.getElementById('cloudSaveBtn').onclick=async()=>{
   if(!HomeDecoSave.getToken()){tokenPanel.hidden=false;tokenInput.focus();cloudStatus.textContent='先にGitHubトークンを設定してください。';return;}
   cloudStatus.textContent='GitHubへ保存中…';
   try{await HomeDecoSave.saveToGitHub();cloudStatus.textContent='GitHubへ保存しました。';}
-  catch(e){cloudStatus.textContent=e.message;alert(e.message);}
+  catch(e){showAuthError(e);}
 };
 
 document.getElementById('cloudLoadBtn').onclick=async()=>{
@@ -115,15 +125,20 @@ document.getElementById('cloudLoadBtn').onclick=async()=>{
   if(HomeDecoSave.hasSave()&&!confirm('端末内の現在データをGitHubのセーブで置き換えますか？'))return;
   cloudStatus.textContent='GitHubから読み込み中…';
   try{await HomeDecoSave.loadFromGitHub();cloudStatus.textContent='GitHubから読み込みました。';location.reload();}
-  catch(e){cloudStatus.textContent=e.message;alert(e.message);}
+  catch(e){showAuthError(e);}
 };
 
 document.getElementById('tokenToggleBtn').onclick=()=>{tokenPanel.hidden=!tokenPanel.hidden;if(!tokenPanel.hidden)tokenInput.focus();};
-document.getElementById('tokenSaveBtn').onclick=()=>{
-  const token=tokenInput.value.trim();
-  if(!token){alert('トークンを入力してください。');return;}
-  HomeDecoSave.setToken(token);tokenInput.value='';tokenPanel.hidden=true;updateTokenStatus();
-  alert('この端末にGitHubトークンを設定しました。');
+document.getElementById('tokenSaveBtn').onclick=async()=>{
+  const token=tokenInput.value;
+  if(!token.trim()){alert('トークンを入力してください。');return;}
+  HomeDecoSave.setToken(token);
+  cloudStatus.textContent='GitHubでトークンを確認中…';
+  try{
+    await HomeDecoSave.checkToken();
+    tokenInput.value='';tokenPanel.hidden=true;cloudStatus.textContent='GitHub認証OK';
+    alert('GitHub認証OKです。');
+  }catch(e){if(e.status===401)HomeDecoSave.clearToken();cloudStatus.textContent=e.message;alert(e.message);}
 };
 document.getElementById('tokenClearBtn').onclick=()=>{HomeDecoSave.clearToken();tokenInput.value='';updateTokenStatus();alert('この端末からトークンを削除しました。');};
 document.getElementById('backupBtn').onclick=()=>HomeDecoSave.exportSave();
