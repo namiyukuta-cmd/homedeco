@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>調味料</title>
-<link rel="stylesheet" href="style.css?v=20260831-11">
+<link rel="stylesheet" href="style.css?v=20260831-12">
 <style>
 .seasoning-list-head,.seasoning-row{display:grid;grid-template-columns:minmax(0,1fr) 90px;gap:8px;align-items:center}.seasoning-list-head{padding:10px 12px;background:#f6ece5;border-bottom:2px solid #cdbdb4;font-size:15px;font-weight:900}.seasoning-list-head span:last-child{text-align:right}.seasoning-row-wrap{border-bottom:1px solid #ded2cb}.seasoning-row-wrap:last-child{border-bottom:0}.seasoning-row{appearance:none;width:100%;border:0;background:#fff;color:var(--ink);padding:11px 12px;text-align:left;font-family:inherit;font-size:16px;line-height:1.35;cursor:pointer}.seasoning-name{font-weight:800}.seasoning-qty{text-align:right;white-space:nowrap;font-weight:700}.seasoning-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;padding:0 10px 10px;background:#fffaf7}.seasoning-actions[hidden]{display:none}.seasoning-actions .btn{min-height:44px;padding:7px 5px;font-size:15px;border-radius:10px}
 </style>
@@ -12,9 +12,9 @@
 <body>
 <main class="app">
   <div class="topbar">
-    <button class="btn" onclick="location.href='homedeco_menu.html?v=20260831-11'">←</button>
+    <button class="btn" onclick="location.href='homedeco_menu.html?v=20260831-12'">←</button>
     <h1>調味料</h1>
-    <button class="btn" onclick="location.href='homedeco_gomi.html?v=20260831-11'">ゴミ</button>
+    <button class="btn" onclick="location.href='homedeco_gomi.html?v=20260831-12'">ゴミ</button>
   </div>
 
   <section class="panel add-item-panel">
@@ -31,16 +31,12 @@
       <div class="form-grid">
         <div class="field">
           <label for="itemQuantity">数量</label>
-          <input id="itemQuantity" type="number" min="1" max="20" step="1" value="1" readonly>
+          <select id="itemQuantity"></select>
         </div>
         <div class="field">
           <label for="itemUnit">単位</label>
           <input id="itemUnit" autocomplete="off" placeholder="なければ入力">
         </div>
-      </div>
-      <div class="field quick-pick-field">
-        <label>数量を選ぶ</label>
-        <div id="quantityPicks" class="quick-pick-grid"></div>
       </div>
       <div class="field quick-pick-field">
         <label>よく使う単位</label>
@@ -63,8 +59,8 @@
   </section>
 </main>
 
-<script src="js/homedeco_items.js?v=20260831-11"></script>
-<script src="js/homedeco_save.js?v=20260831-11"></script>
+<script src="js/homedeco_items.js?v=20260831-12"></script>
+<script src="js/homedeco_save.js?v=20260831-12"></script>
 <script>
 const addForm=document.getElementById('addForm');
 const toggleAddBtn=document.getElementById('toggleAddBtn');
@@ -73,9 +69,16 @@ const itemQuantity=document.getElementById('itemQuantity');
 const itemUnit=document.getElementById('itemUnit');
 const favoriteField=document.getElementById('favoriteField');
 const favoriteItems=document.getElementById('favoriteItems');
-const quantityPicks=document.getElementById('quantityPicks');
 const unitPicks=document.getElementById('unitPicks');
 const COMMON_UNITS=['個','本','袋','パック','箱','枚','g','kg','ml','L'];
+
+for(let n=1;n<=20;n++){
+  const option=document.createElement('option');
+  option.value=String(n);
+  option.textContent=String(n);
+  itemQuantity.appendChild(option);
+}
+itemQuantity.value='1';
 
 function renderFavorites(){
   favoriteItems.innerHTML='';
@@ -94,23 +97,6 @@ function renderFavorites(){
   });
 }
 
-function renderQuantityPicks(){
-  quantityPicks.innerHTML='';
-  for(let n=1;n<=20;n++){
-    const b=document.createElement('button');
-    b.type='button';
-    b.className='quick-pick-btn';
-    b.dataset.quantity=String(n);
-    b.textContent=String(n);
-    b.onclick=()=>{itemQuantity.value=String(n);syncQuantitySelection();};
-    quantityPicks.appendChild(b);
-  }
-  syncQuantitySelection();
-}
-function syncQuantitySelection(){
-  const value=String(itemQuantity.value);
-  quantityPicks.querySelectorAll('.quick-pick-btn').forEach(b=>b.classList.toggle('selected',b.dataset.quantity===value));
-}
 function renderUnitPicks(){
   unitPicks.innerHTML='';
   COMMON_UNITS.forEach(unit=>{
@@ -130,7 +116,6 @@ function syncUnitSelection(){
 itemUnit.addEventListener('input',syncUnitSelection);
 
 renderFavorites();
-renderQuantityPicks();
 renderUnitPicks();
 
 toggleAddBtn.onclick=()=>{
@@ -140,10 +125,9 @@ toggleAddBtn.onclick=()=>{
 document.getElementById('cancelAddBtn').onclick=()=>{
   addForm.hidden=true;
   addForm.reset();
-  itemQuantity.value=1;
+  itemQuantity.value='1';
   toggleAddBtn.textContent='＋ 調味料を追加';
   favoriteItems.querySelectorAll('.quick-pick-btn').forEach(x=>x.classList.remove('selected'));
-  syncQuantitySelection();
   syncUnitSelection();
 };
 
@@ -162,10 +146,9 @@ addForm.addEventListener('submit',e=>{
   });
   HomeDecoSave.addFavorite('seasoning',name,unit);
   addForm.reset();
-  itemQuantity.value=1;
+  itemQuantity.value='1';
   addForm.hidden=true;
   toggleAddBtn.textContent='＋ 調味料を追加';
-  syncQuantitySelection();
   syncUnitSelection();
   renderFavorites();
   render();
